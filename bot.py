@@ -1,7 +1,7 @@
 import telebot
 
 # ВСТАВЬТЕ СЮДА ТОКЕН ОТ BOTFATHER
-TOKEN = "8548570036:AAEpvnNBYamEJrDGEXj0-Gtl1FcDAWV08Vw"
+TOKEN = "8587450897:AAHCua785doxqhpQIa7jYU4u48tAroyeEAY"
 
 bot = telebot.TeleBot(TOKEN)
 
