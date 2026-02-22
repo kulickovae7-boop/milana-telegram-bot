@@ -1,83 +1,80 @@
 import telebot
 import os
-from telebot import types
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# Временное хранилище баллов (пока без базы)
-user_scores = {}
+# ====== ХРАНЕНИЕ ПОЛЬЗОВАТЕЛЕЙ ======
+users = {}
 
-def main_menu(chat_id):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn1 = types.KeyboardButton("📚 Урок")
-    btn2 = types.KeyboardButton("⭐ Мой уровень")
-    btn3 = types.KeyboardButton("🔥 Челлендж дня")
-    markup.add(btn1)
-    markup.add(btn2, btn3)
+def get_user(chat_id):
+    if chat_id not in users:
+        users[chat_id] = {
+            "mission": 1,
+            "score": 0
+        }
+    return users[chat_id]
 
-    bot.send_message(
-        chat_id,
-        "🎓 Milana AI Academy\n\nВыбери, куда идём сегодня 💛",
-        reply_markup=markup
-    )
+# ====== МИССИИ ======
+
+missions = {
+    1: {
+        "text": "🎮 МИССИЯ 1: 'Я люблю'\n\nВ словенском:\nЯ (девочка) люблю = Rada\n\nПример:\n📖 Rada berem = Я люблю читать\n\n✍ Напиши по-словенски:\n'Я люблю читать'",
+        "answer": "rada berem"
+    },
+    2: {
+        "text": "🎮 МИССИЯ 2: 'Я иду'\n\nВ словенском:\nЯ иду = Grem\n\n✍ Напиши по-словенски:\n'Я иду в школу'\n(подсказка: šolo)",
+        "answer": "grem v šolo"
+    }
+}
+
+# ====== КОМАНДА START ======
 
 @bot.message_handler(commands=['start'])
-def start_message(message):
-    user_scores[message.chat.id] = 0
-    main_menu(message.chat.id)
+def start(message):
+    user = get_user(message.chat.id)
+    bot.send_message(message.chat.id, 
+        "🎓 Добро пожаловать в Milana AI Academy!\n\nНапиши 'Урок', чтобы начать.")
 
-@bot.message_handler(func=lambda message: message.text == "📚 Урок")
-def lesson(message):
-    bot.send_message(
-        message.chat.id,
-        "🎮 МИССИЯ 1: \"Я люблю\"\n\n"
-        "В словенском:\n"
-        "Я (девочка) люблю = Rada\n"
-        "Например:\n"
-        "📖 Rada berem = Я люблю читать\n\n"
-        "✍️ Напиши по-словенски:\n"
-        "\"Я люблю читать\""
-    )
+# ====== ЗАПУСК УРОКА ======
 
-@bot.message_handler(func=lambda message: message.text and message.text.lower() == "rada berem")
-def correct_answer(message):
-    user_scores[message.chat.id] = user_scores.get(message.chat.id, 0) + 10
+@bot.message_handler(func=lambda message: message.text.lower() == "урок")
+def start_lesson(message):
+    user = get_user(message.chat.id)
+    mission_id = user["mission"]
 
-    bot.send_message(
-        message.chat.id,
-        f"🌟 БИНГО!\n\n+10 баллов\n"
-        f"Твои баллы: {user_scores[message.chat.id]} ⭐\n\n"
-        "🏆 Миссия 1 завершена!"
-    )
-    main_menu(message.chat.id)
+    if mission_id in missions:
+        bot.send_message(message.chat.id, missions[mission_id]["text"])
+    else:
+        bot.send_message(message.chat.id, "🏆 Ты прошла все миссии!")
 
-@bot.message_handler(func=lambda message: message.text == "⭐ Мой уровень")
-def level(message):
-    score = user_scores.get(message.chat.id, 0)
-    bot.send_message(
-        message.chat.id,
-        f"⭐ Твои баллы: {score}\n"
-        "Уровень: 1 (пока 😉)"
-    )
-
-@bot.message_handler(func=lambda message: message.text == "🔥 Челлендж дня")
-def challenge(message):
-    bot.send_message(
-        message.chat.id,
-        "🔥 Челлендж дня:\n\n"
-        "Напиши по-словенски:\n"
-        "\"Я люблю танцевать\""
-    )
+# ====== ПРОВЕРКА ОТВЕТА ======
 
 @bot.message_handler(func=lambda message: True)
-def fallback(message):
-    bot.send_message(
-        message.chat.id,
-        "💛 Я пока не понимаю это сообщение.\n"
-        "Выбери кнопку из меню."
-    )
+def check_answer(message):
+    user = get_user(message.chat.id)
+    mission_id = user["mission"]
 
-if __name__ == "__main__":
-    bot.remove_webhook()
-    bot.infinity_polling(timeout=60, long_polling_timeout=60)
+    if mission_id not in missions:
+        return
+
+    correct_answer = missions[mission_id]["answer"]
+
+    if message.text.lower() == correct_answer:
+        user["score"] += 10
+        user["mission"] += 1
+
+        bot.send_message(message.chat.id,
+            f"✨ БИНГО!\n+10 баллов\nТвои баллы: {user['score']} ⭐\n\n🚀 Миссия завершена!")
+
+        if user["mission"] in missions:
+            bot.send_message(message.chat.id,
+                "Напиши 'Урок' для следующей миссии 😉")
+        else:
+            bot.send_message(message.chat.id,
+                "🏆 Ты прошла все миссии!")
+    else:
+        bot.send_message(message.chat.id,
+            "❌ Попробуй ещё раз 💛")
+
+bot.infinity_polling()
