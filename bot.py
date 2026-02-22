@@ -1,6 +1,6 @@
 import telebot
 
-# ВСТАВЬТЕ СЮДА ТОКЕН ОТ BOTFATHER
+import os
 TOKEN = "8587450897:AAHCua785doxqhpQIa7jYU4u48tAroyeEAY"
 
 bot = telebot.TeleBot(TOKEN)
