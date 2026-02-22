@@ -24,4 +24,5 @@ def echo_all(message):
         bot.send_message(message.chat.id,
                          "Попробуй написать: rada berem")
 
-bot.infinity_polling()
+bot.infinity_polling()  
+
